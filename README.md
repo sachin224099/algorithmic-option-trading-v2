@@ -36,7 +36,7 @@ Each layer has single responsibility.
 ### 📂 Project Structure
 
 ```
-algo_trading/
+algorithmic-option-trading-v2/
 │
 ├── config/
 │   ├── config.yaml
