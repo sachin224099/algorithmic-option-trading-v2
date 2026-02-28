@@ -1,26 +1,23 @@
 # algorithmic-option-trading-v2
 
-Algo Trading Engine – Sudden Move Detection System
-🎯 Objective
+## Algo Trading Engine – Sudden Move Detection System
+
+### 🎯 Objective
 
 Build a modular, extendable intraday trading engine that:
 
-Scans 200 F&O stocks
+- Scans 200 F&O stocks
+- Detects high-probability sudden moves
+- Uses 15-min candles for structure
+- Uses 5-min candles for entry timing
+- Trades option buying (20% SL / 40% target)
+- Runs on a single machine continuously
 
-Detects high-probability sudden moves
-
-Uses 15-min candles for structure
-
-Uses 5-min candles for entry timing
-
-Trades option buying (20% SL / 40% target)
-
-Runs on a single machine continuously
-
-🏗️ Architecture Overview
+### 🏗️ Architecture Overview
 
 System follows clean layered design:
 
+```
 Data Layer
     ↓
 Indicator Layer
@@ -32,10 +29,13 @@ Scoring Layer
 Engine Layer (Orchestration)
     ↓
 Execution Layer
+```
 
 Each layer has single responsibility.
 
-📂 Project Structure
+### 📂 Project Structure
+
+```
 algo_trading/
 │
 ├── config/
@@ -73,11 +73,15 @@ algo_trading/
 │   └── orchestrator.py
 │
 └── main.py
-⚙️ Configuration (YAML Based)
+```
+
+### ⚙️ Configuration (YAML Based)
 
 All strategy parameters must be configurable.
 
-config/config.yaml
+**config/config.yaml**
+
+```yaml
 environment: paper
 
 timeframes:
@@ -114,92 +118,83 @@ scoring_weights:
   iv: 2
   volume: 1
   gamma: 1
-🧠 Trading Logic Design
-1️⃣ 15-Min Structure Scan (Runs Every 15 Minutes)
-Data Required:
+```
 
-Futures 15-min candles
+### 🧠 Trading Logic Design
 
-Futures OI
+#### 1️⃣ 15-Min Structure Scan (Runs Every 15 Minutes)
 
-Futures volume
+**Data Required:**
 
-Conditions:
+- Futures 15-min candles
+- Futures OI
+- Futures volume
 
-Breakout of last 12-candle high/low
+**Conditions:**
 
-Volume > 1.5× average
+- Breakout of last 12-candle high/low
+- Volume > 1.5× average
+- Futures OI increasing
+- ATR expansion
 
-Futures OI increasing
+**Output:**
 
-ATR expansion
+- Shortlist top candidates by score.
+- Reduce 200 → ~30 → Top 5
 
-Output:
-
-Shortlist top candidates by score.
-
-Reduce 200 → ~30 → Top 5
-
-2️⃣ Option Aggression Filter
+#### 2️⃣ Option Aggression Filter
 
 Only applied to shortlisted stocks.
 
-Data Required:
+**Data Required:**
 
-ATM ± 3 strikes
+- ATM ± 3 strikes
+- OI change
+- Volume spike
+- IV change
 
-OI change
+**Bullish:**
 
-Volume spike
+- Put OI increasing OR Call OI decreasing
+- ATM volume > 2×
+- IV rising (> 3%)
+- IV percentile < 85
 
-IV change
-
-Bullish:
-
-Put OI increasing OR Call OI decreasing
-
-ATM volume > 2×
-
-IV rising (> 3%)
-
-IV percentile < 85
-
-3️⃣ Scoring Model
+#### 3️⃣ Scoring Model
 
 Weighted scoring:
 
-Component	Weight
-Breakout	3
-Futures OI	2
-Option OI shift	2
-IV expansion	2
-Volume spike	1
-Gamma proximity	1
+| Component | Weight |
+|-----------|--------|
+| Breakout | 3 |
+| Futures OI | 2 |
+| Option OI shift | 2 |
+| IV expansion | 2 |
+| Volume spike | 1 |
+| Gamma proximity | 1 |
 
-Trigger:
+**Trigger:**
 
-Score ≥ 8 → Eligible for entry monitoring
+- Score ≥ 8 → Eligible for entry monitoring
 
-4️⃣ 5-Min Entry Monitoring
+#### 4️⃣ 5-Min Entry Monitoring
 
 Runs every 5 minutes for shortlisted stocks.
 
-Entry Conditions:
+**Entry Conditions:**
 
-Pullback holds above breakout level
-
-Higher low → Higher high pattern
-
-5-min volume expansion
-
-Option not already spiked > 20%
+- Pullback holds above breakout level
+- Higher low → Higher high pattern
+- 5-min volume expansion
+- Option not already spiked > 20%
 
 Entry triggered after confirmation.
 
-🔁 Runtime Execution Model (Single Machine)
+### 🔁 Runtime Execution Model (Single Machine)
 
 Continuous loop scheduler:
 
+```
 Start program
 Load config
 Initialize Zerodha session
@@ -212,60 +207,48 @@ Loop:
         Monitor shortlisted symbols
 
     Sleep 5 seconds
-💾 State Management
+```
+
+### 💾 State Management
 
 Optional but recommended:
 
+```
 state/
    open_positions.json
    shortlisted_symbols.json
+```
 
 Allows recovery if system crashes.
 
-⚡ Performance Strategy (200 Stocks)
+### ⚡ Performance Strategy (200 Stocks)
 
-Fetch futures for all 200
+- Fetch futures for all 200
+- Fetch options only for shortlisted (~30)
+- Cache data per cycle
+- Avoid unnecessary API calls
+- Never fetch full option chain for all 200
 
-Fetch options only for shortlisted (~30)
+### 🎯 Risk Management
 
-Cache data per cycle
+- SL = 20%
+- Target = 40%
+- Max open positions = 3
+- Avoid entries if IV already expanded > 8%
+- Avoid first 15 minutes of market
 
-Avoid unnecessary API calls
+### 📌 Execution Rules
 
-Never fetch full option chain for all 200
+- Structure confirmation on 15-min close
+- Entry precision on 5-min
+- No entry during extreme IV
+- No entry after option already moved 25%
 
-🎯 Risk Management
+### 🧩 Design Principles Followed
 
-SL = 20%
-
-Target = 40%
-
-Max open positions = 3
-
-Avoid entries if IV already expanded > 8%
-
-Avoid first 15 minutes of market
-
-📌 Execution Rules
-
-Structure confirmation on 15-min close
-
-Entry precision on 5-min
-
-No entry during extreme IV
-
-No entry after option already moved 25%
-
-🧩 Design Principles Followed
-
-Single Responsibility Principle
-
-Strategy isolation
-
-Config-driven parameters
-
-Broker abstraction
-
-Extendable scoring engine
-
-Easy ML integration later
+- Single Responsibility Principle
+- Strategy isolation
+- Config-driven parameters
+- Broker abstraction
+- Extendable scoring engine
+- Easy ML integration later
