@@ -1,10 +1,14 @@
 # Kite Connect API Configuration
 api:
-  api_key: 6murx0jiveb7cdnp
-  access_token: Tq0yJvv12J7rEDAr4KoBh4lLfoHfuRZd
+  api_key: 
+  access_token: 
 
 # Trading Strategy Configuration
 strategy:
   timeframe_minutes: 15
   lookback_candles: 10
   expiry_date: 2026-03-30
+
+entry:
+  volume_multiplier: 1.5
+  lookback_candles: 5
