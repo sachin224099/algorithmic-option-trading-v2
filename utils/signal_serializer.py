@@ -1,4 +1,4 @@
-import json
+import orjson
 import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Any
@@ -79,8 +79,8 @@ def save_signals_to_file(signals: List[pd.Series], filepath: str) -> None:
         "signals": serialized_signals
     }
     
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=str)
+    with open(filepath, 'wb') as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
     
     print(f"✅ Saved {len(serialized_signals)} signals to {filepath}")
 
@@ -96,13 +96,13 @@ def load_signals_from_file(filepath: str) -> List[Dict[str, Any]]:
         List of signal dictionaries
     """
     try:
-        with open(filepath, 'r') as f:
-            data = json.load(f)
+        with open(filepath, 'rb') as f:
+            data = orjson.loads(f.read())
         
         return data.get("signals", [])
     except FileNotFoundError:
         print(f"⚠️ Signal file not found: {filepath}")
         return []
-    except json.JSONDecodeError as e:
+    except (ValueError, TypeError) as e:
         print(f"❌ Error decoding JSON from {filepath}: {e}")
         return []

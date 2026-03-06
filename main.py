@@ -13,6 +13,9 @@ from target_stoploss.target_stop_loss_calculator import calculate_target_stop_lo
 from target_stoploss.target_stop_loss_calculator import calculate_target_stop_loss_options
 from data.options_data import populate_options_ltp
 from utils.signal_serializer import serialize_signal
+from scoring.signal_scorer import SignalScorer
+from options.options_metrics import OptionsMetrics
+
 
 @handle_exceptions
 def main():
@@ -54,6 +57,7 @@ def main():
                         continue
                     
                     options = filter_strikes_near_spot(nfo_instruments, symbol, signal["signal"], stock_spot_prices[symbol], signal["current_atr"])
+                    options = OptionsMetrics(zerodha_client).populate_options_metrics(options)
                     if options is None:
                         print(f"⚠️ Skipping {symbol}: no suitable option strike found")
                         continue
@@ -64,9 +68,10 @@ def main():
                         continue
                     
                     # Create a copy of signal for JSON without modifying original
-                    signal_copy = signal.copy()
+                    # Convert pandas Series to dict first to avoid string conversion of dict values
+                    signal_copy = signal.to_dict() if isinstance(signal, pd.Series) else signal.copy()
                     futures_target_stop_loss = calculate_target_stop_loss_futures(signal["close"], signal["current_atr"], signal["signal"], config)
-                    signal_copy["futures_target_sl_context"] = serialize_signal(futures_target_stop_loss)
+                    signal_copy["futures_target_sl_context"] = futures_target_stop_loss
                     
                     options_target_stop_loss = calculate_target_stop_loss_options(futures_target_stop_loss, options["last_price"], signal["close"], config)
 
@@ -79,8 +84,11 @@ def main():
                     symbol = signal.get("symbol", "UNKNOWN")
                     print(f"⚠️ Error processing {symbol}: {e}")
                     continue
+
             # Save signals to JSON file (using copies, original signals remain unchanged)
             if signals_for_json:
+                scorer = SignalScorer(config)
+                signals_for_json = scorer.rank_signals(signals_for_json)
                 signals_filepath = save_signals_with_timestamp(signals_for_json, run_start)
                 print(f"✅ Processed {len(signals_for_json)} signals and saved to {signals_filepath}")
             else:

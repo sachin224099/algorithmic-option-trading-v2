@@ -1,7 +1,7 @@
 # Kite Connect API Configuration
 api:
-  api_key: 
-  access_token: 
+  api_key: <>
+  access_token: <>
 
 # Trading Strategy Configuration
 strategy:
@@ -12,3 +12,22 @@ strategy:
 entry:
   volume_multiplier: 1.5
   lookback_candles: 5
+
+futures:
+  target_atr_multiplier: 1.5
+  stop_loss_atr_multiplier: 0.8
+
+
+options:
+  default_delta: 0.5
+
+
+scoring:
+  weights:
+    volume: 22
+    oi_structure: 18
+    price_momentum: 14
+    atr: 14
+    vwap: 14
+    oi_trend: 8
+    option_volume_spike_ratio: 10

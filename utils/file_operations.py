@@ -1,15 +1,7 @@
 import os
-import json
+import orjson
 from datetime import datetime, date
 from utils.signal_serializer import save_signals_to_file
-
-
-class CustomJSONEncoder(json.JSONEncoder):
-    """Custom JSON encoder that handles datetime.date and datetime.datetime."""
-    def default(self, obj):
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        return super().default(obj)
 
 
 def _make_json_serializable(obj):
@@ -96,17 +88,9 @@ def save_signals_with_timestamp(signals, timestamp=None, signals_dir="data_cache
             symbol = signal.get('symbol', 'UNKNOWN')
             futures_ctx = signal.get('futures_target_sl_context')
             options_ctx = signal.get('options')
-            if isinstance(futures_ctx, str):
-                print(f"🔍 DEBUG: futures_target_sl_context is STRING for {symbol} (length: {len(futures_ctx)})")
-            elif isinstance(futures_ctx, dict):
-                print(f"✅ DEBUG: futures_target_sl_context is DICT for {symbol}")
-            else:
-                print(f"⚠️ DEBUG: futures_target_sl_context is {type(futures_ctx)} for {symbol}")
             
             if isinstance(options_ctx, str):
                 print(f"🔍 DEBUG: options is STRING for {symbol} (length: {len(options_ctx)})")
-            elif isinstance(options_ctx, dict):
-                print(f"✅ DEBUG: options is DICT for {symbol}")
             else:
                 print(f"⚠️ DEBUG: options is {type(options_ctx)} for {symbol}")
             # Deep copy to avoid modifying original
@@ -174,14 +158,14 @@ def save_signals_with_timestamp(signals, timestamp=None, signals_dir="data_cache
             first_signal = serialized_signals[0]
             futures_type = type(first_signal.get('futures_target_sl_context'))
             options_type = type(first_signal.get('options'))
-            print(f"🔍 Before json.dump - futures_target_sl_context type: {futures_type}, options type: {options_type}")
+            print(f"🔍 Before orjson.dumps - futures_target_sl_context type: {futures_type}, options type: {options_type}")
             if isinstance(first_signal.get('futures_target_sl_context'), str):
-                print(f"⚠️ CRITICAL: futures_target_sl_context is STRING before json.dump!")
+                print(f"⚠️ CRITICAL: futures_target_sl_context is STRING before orjson.dumps!")
             if isinstance(first_signal.get('options'), str):
-                print(f"⚠️ CRITICAL: options is STRING before json.dump!")
+                print(f"⚠️ CRITICAL: options is STRING before orjson.dumps!")
         
-        with open(signals_filepath, 'w') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False, cls=CustomJSONEncoder)
+        with open(signals_filepath, 'wb') as f:
+            f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
         print(f"✅ Saved {len(serialized_signals)} signals to {signals_filepath}")
     else:
         # Signals are pandas Series, use serializer
@@ -214,8 +198,8 @@ def save_confirmed_entries(confirmed_entries, entries_dir="data_cache/confirmed_
         "entries": serialized_entries
     }
     
-    with open(entries_filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=str)
+    with open(entries_filepath, 'wb') as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
     
     print(f"💾 Saved {len(serialized_entries)} confirmed entries to {entries_filepath}")
 
@@ -236,8 +220,8 @@ def remove_confirmed_from_signals(confirmed_entries, signals_files, signals_dir)
     for signals_filepath in signals_files:
         try:
             # Load the signals file
-            with open(signals_filepath, 'r') as f:
-                data = json.load(f)
+            with open(signals_filepath, 'rb') as f:
+                data = orjson.loads(f.read())
             
             signals = data.get("signals", [])
             if not signals:
@@ -270,8 +254,8 @@ def remove_confirmed_from_signals(confirmed_entries, signals_files, signals_dir)
                 data["timestamp"] = datetime.now().isoformat()
                 
                 # Save updated signals back to file
-                with open(signals_filepath, 'w') as f:
-                    json.dump(data, f, indent=2, default=str)
+                with open(signals_filepath, 'wb') as f:
+                    f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
                 
                 print(f"🗑️  Removed {original_count - len(remaining_signals)} confirmed signal(s) from {os.path.basename(signals_filepath)}")
         

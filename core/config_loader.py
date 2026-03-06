@@ -36,3 +36,6 @@ class Config:
 
     def get_options_default_delta(self):
         return self.get("options", "default_delta")
+    
+    def get_scoring_weights(self):
+        return self.get("scoring", "weights")
