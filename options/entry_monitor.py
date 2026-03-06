@@ -1,5 +1,7 @@
 import pandas as pd
 from datetime import datetime
+from data.historic_data import get_minutes_data
+from indicators.indicator_metrics_calculator import calculate_oi_change_pct
 
 
 class EntryMonitor:
@@ -34,14 +36,18 @@ class EntryMonitor:
         for trade in trade_candidates:
 
             symbol = trade["symbol"]
+            instrument_token = trade["instrument_token"]
             direction = trade["signal"]
             option_symbol = trade["option_symbol"]
+            option_instrument_token = trade["option_instrument_token"]
 
-            df = self._get_5min_data(symbol)
+            df = self._get_5min_data(symbol, instrument_token)
 
             if df is None:
                 continue
 
+            #df = df.iloc[-1:].copy()
+            #option_df = self._get_5min_data(option_symbol, option_instrument_token)
             entry = self._check_entry_conditions(
                 symbol,
                 direction,
@@ -58,25 +64,14 @@ class EntryMonitor:
     # FETCH 5 MIN DATA
     # -------------------------------------------------------
 
-    def _get_5min_data(self, symbol):
+    def _get_5min_data(self, symbol, instrument_token):
 
         try:
 
             to_date = datetime.now()
             from_date = to_date.replace(hour=9, minute=15)
 
-            df = self.client.get_futures_historical(
-                stock_symbol=symbol,
-                from_date=from_date,
-                to_date=to_date,
-                interval="5minute"
-            )
-
-            if df is None or len(df) < 5:
-                return None
-
-            df = pd.DataFrame(df)
-
+            df = get_minutes_data(self.client.kite, instrument_token, from_date, to_date, 5, oi=True)
             return df
 
         except Exception as e:
@@ -101,6 +96,7 @@ class EntryMonitor:
         bullish_break = latest["close"] > prev["high"]
         bearish_break = latest["close"] < prev["low"]
 
+        #print(symbol, bullish_break, bearish_break)
         # -----------------------------------------------
         # VOLUME CONFIRMATION
         # -----------------------------------------------
@@ -113,26 +109,32 @@ class EntryMonitor:
         # ENTRY DECISION
         # -----------------------------------------------
 
-        if direction == "BUY_CE":
 
-            if bullish_break and volume_spike:
+        oi_percentage_change = calculate_oi_change_pct(df)
+        #print(symbol, oi_percentage_change)
+        #print(symbol, self._get_option_ltp(option_symbol))
+        if direction == "CE":
+
+            if bullish_break and volume_spike and oi_percentage_change > 0.3:
 
                 return {
                     "symbol": symbol,
                     "option_symbol": option_symbol,
                     "direction": direction,
+                    "oi_percentage_change_5min": oi_percentage_change,
                     "entry_price": self._get_option_ltp(option_symbol),
                     "timestamp": datetime.now()
                 }
 
-        elif direction == "BUY_PE":
+        elif direction == "PE":
 
-            if bearish_break and volume_spike:
+            if bearish_break and volume_spike and oi_percentage_change > 0.3:
 
                 return {
                     "symbol": symbol,
                     "option_symbol": option_symbol,
                     "direction": direction,
+                    "oi_percentage_change_5min": oi_percentage_change,
                     "entry_price": self._get_option_ltp(option_symbol),
                     "timestamp": datetime.now()
                 }
@@ -147,12 +149,15 @@ class EntryMonitor:
 
         try:
 
-            response = self.client.get_ltp_multiple(
-                [option_symbol],
-                exchange="NFO"
-            )
-
-            return response.get(option_symbol)
+            response = self.client.get_option_ltp(option_symbol)
+            
+            # Response key format is "NFO:option_symbol"
+            instrument_key = f"NFO:{option_symbol}"
+            
+            if instrument_key in response:
+                return response[instrument_key].get("last_price")
+            
+            return None
 
         except Exception as e:
 

@@ -24,9 +24,7 @@ def fetch_intraday_data(kite: KiteConnect, instrument_token: int):
 
 
 @handle_exceptions
-def get_minutes_data(kite, instrument_token, TIMEFRAME_MINUTES=15, oi=False):
-    to_date = datetime.now()
-    from_date = to_date - timedelta(days=15)
+def get_minutes_data(kite, instrument_token, from_date, to_date, TIMEFRAME_MINUTES=15, oi=False):
 
     return pd.DataFrame(
         kite.historical_data(

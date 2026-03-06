@@ -71,6 +71,8 @@ class ZerodhaClient:
         try:
             response = self.kite.ltp(instruments)
 
+            #print(f"Response: {response}")
+
             ltp_data = {}
 
             for key, value in response.items():

@@ -27,3 +27,12 @@ class Config:
     
     def get_lookback_candles(self):
         return self.get("strategy", "lookback_candles")
+    
+    def get_futures_target_atr_multiplier(self):
+        return self.get("futures", "target_atr_multiplier")
+
+    def get_futures_stop_loss_atr_multiplier(self):
+        return self.get("futures", "stop_loss_atr_multiplier")
+
+    def get_options_default_delta(self):
+        return self.get("options", "default_delta")

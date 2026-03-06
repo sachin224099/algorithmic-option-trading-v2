@@ -1,5 +1,6 @@
 from indicators.breakout import breakout_signal
 import pandas as pd
+from datetime import datetime, timedelta
 from data.historic_data import get_minutes_data
 from data.zerodha_client import ZerodhaClient
 from core.config_loader import Config
@@ -10,7 +11,9 @@ def get_fifteen_min_signals(futures_master: pd.DataFrame):
     signals = []
     for index, row in futures_master.iterrows():
         instrument_token = row["instrument_token"]
-        df = get_minutes_data(kite, instrument_token, oi=True)
+        to_date = datetime.now()
+        from_date = to_date - timedelta(days=15)
+        df = get_minutes_data(kite, instrument_token, from_date, to_date, 15, oi=True)
         df_closed = df.iloc[:-1].copy()
         signal = breakout_signal(df_closed)
         if signal is not None:
