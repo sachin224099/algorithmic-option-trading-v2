@@ -380,3 +380,31 @@ def extract_vwap_context(df):
         "is_vwap_slope_rising": is_vwap_rising(vwap_series),
         "above_vwap_duration_min": calculate_above_vwap_duration(df, vwap_series)
     }
+
+
+def detect_compression1(df, atr_series, window=6):
+
+    if len(atr_series) < window + 10:
+        return False
+
+    old_atr = atr_series.iloc[-(window+10):-10].mean()
+    recent_atr = atr_series.iloc[-window:].mean()
+
+    return recent_atr < old_atr * 0.8
+
+
+def detect_compression(df, atr_series, window=10):
+
+    if len(df) < 40:
+        return False
+
+    atr_recent = atr_series.iloc[-(window+1):-1].mean()
+    atr_old = atr_series.iloc[-31:-(window+1)].mean()
+
+    range_recent = df["high"].iloc[-(window+1):-1].max() - df["low"].iloc[-(window+1):-1].min()
+    range_old = df["high"].iloc[-31:-(window+1)].max() - df["low"].iloc[-31:-(window+1)].min()
+
+    atr_compression = atr_recent < atr_old * 0.8
+    range_compression = range_recent < range_old * 0.7
+
+    return atr_compression and range_compression

@@ -38,3 +38,21 @@ def breakout_signal(df, lookback=12):
         return "PE"
 
     return None
+
+#will use this later for liquidity sweep breakout
+def liquidity_sweep_breakout(df, window=10):
+
+    if len(df) < window + 2:
+        return False
+
+    resistance = df["high"].iloc[-(window+2):-2].max()
+
+    prev_high = df["high"].iloc[-2]
+    prev_close = df["close"].iloc[-2]
+
+    current_close = df["close"].iloc[-1]
+
+    sweep = prev_high > resistance and prev_close < resistance
+    breakout = current_close > resistance
+
+    return sweep and breakout    

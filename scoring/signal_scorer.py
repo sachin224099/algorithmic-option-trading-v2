@@ -72,11 +72,14 @@ class SignalScorer:
     # -----------------------------
     def score_atr(self, signal: Dict) -> float:
 
-        if signal.get("atr_expanding_3_candles"):
+        if signal.get("is_compression") and signal.get("atr_expanding_3_candles"):
             return self.weights["atr"]
 
-        if signal.get("atr_expanding_2_candles"):
+        if signal.get("atr_expanding_3_candles"):
             return self.weights["atr"] * 0.7
+
+        if signal.get("atr_expanding_2_candles"):
+            return self.weights["atr"] * 0.5
 
         return self.weights["atr"] * 0.2
 

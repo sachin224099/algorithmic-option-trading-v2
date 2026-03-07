@@ -39,3 +39,6 @@ class Config:
     
     def get_scoring_weights(self):
         return self.get("scoring", "weights")
+
+    def get_compression_window(self):
+        return self.get("strategy", "compression_window")

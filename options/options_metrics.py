@@ -63,7 +63,7 @@ class OptionsMetrics:
 
         avg_volume = df.iloc[-6:-1]["volume"].mean()
         current_volume = df.iloc[-1]["volume"]
-        print(f"Average volume: {avg_volume}, Current volume: {current_volume}")
+        #print(f"Average volume: {avg_volume}, Current volume: {current_volume}")
 
         if avg_volume == 0:
             return 0

@@ -1,13 +1,15 @@
 from indicators.breakout import breakout_signal
+from indicators.breakout import liquidity_sweep_breakout
 import pandas as pd
 from datetime import datetime, timedelta
 from data.historic_data import get_minutes_data
 from data.zerodha_client import ZerodhaClient
 from core.config_loader import Config
-from indicators.indicator_metrics_calculator import calculate_price_change_pct, calculate_oi_change_pct, calculate_volume_spike_ratio, classify_oi_structure, identify_oi_trend, calculate_atr, calculate_atr_percentage_from_value, calculate_atr_series, is_atr_expanding_3_candles, is_atr_expanding_2_candles, extract_vwap_context    
+from indicators.indicator_metrics_calculator import calculate_price_change_pct, calculate_oi_change_pct, calculate_volume_spike_ratio, classify_oi_structure, identify_oi_trend, calculate_atr, calculate_atr_percentage_from_value, calculate_atr_series, is_atr_expanding_3_candles, is_atr_expanding_2_candles, extract_vwap_context, detect_compression     
 
 def get_fifteen_min_signals(futures_master: pd.DataFrame):
-    kite = ZerodhaClient(Config()).get_kite()
+    config = Config()
+    kite = ZerodhaClient(config).get_kite()
     signals = []
     for index, row in futures_master.iterrows():
         try:
@@ -21,7 +23,7 @@ def get_fifteen_min_signals(futures_master: pd.DataFrame):
                 continue
                 
             df_closed = df.iloc[:-1].copy()
-            signal = breakout_signal(df_closed)
+            signal = breakout_signal(df_closed, config.get_lookback_candles())
             if signal is not None:
                 #print(f"Signal: {signal} for {row['futures_symbol']}")
                 row["signal"] = signal
@@ -42,6 +44,9 @@ def get_fifteen_min_signals(futures_master: pd.DataFrame):
                 row["vwap"] = vwap_context["vwap"]
                 row["is_vwap_slope_rising"] = vwap_context["is_vwap_slope_rising"]
                 row["above_vwap_duration_min"] = vwap_context["above_vwap_duration_min"]
+                #print(row["symbol"])
+                row["is_compression"] = detect_compression(df_closed, atr_series, config.get_compression_window())
+                row["is_liquidity_sweep_breakout"] = liquidity_sweep_breakout(df_closed, config.get_lookback_candles())
 
                 signals.append(row)
         except Exception as e:
