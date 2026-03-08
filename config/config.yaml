@@ -6,7 +6,8 @@ api:
 # Trading Strategy Configuration
 strategy:
   timeframe_minutes: 15
-  lookback_candles: 10
+  lookback_candles: 8
+  compression_window: 12
   expiry_date: 2026-03-30
 
 entry:
@@ -24,10 +25,13 @@ options:
 
 scoring:
   weights:
-    volume: 22
-    oi_structure: 18
-    price_momentum: 14
-    atr: 14
-    vwap: 14
-    oi_trend: 8
-    option_volume_spike_ratio: 10
+    volume: 16
+    oi_structure: 16
+    price_momentum: 12
+    atr: 16
+    compression: 12
+    liquidity_sweep: 14
+    vwap: 10
+    oi_trend: 6
+    option_volume_spike_ratio: 8
+    range_expansion: 10

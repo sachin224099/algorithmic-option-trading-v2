@@ -7,119 +7,207 @@ class SignalScorer:
         self.config = config
         self.weights = config.get_scoring_weights()
 
-    # -----------------------------
+    # -------------------------------------------------
     # Volume Score
-    # -----------------------------
+    # -------------------------------------------------
     def score_volume(self, volume_spike_ratio: float) -> float:
-        #print("starting volume score")
+
+        w = self.weights["volume"]
 
         if volume_spike_ratio >= 5:
-            return self.weights["volume"]
+            return w
 
         elif volume_spike_ratio >= 3:
-            return self.weights["volume"] * 0.8
+            return w * 0.8
 
         elif volume_spike_ratio >= 2:
-            return self.weights["volume"] * 0.6
+            return w * 0.6
 
         elif volume_spike_ratio >= 1.5:
-            return self.weights["volume"] * 0.4
+            return w * 0.4
 
-        return self.weights["volume"] * 0.2
+        return w * 0.2
 
-    # -----------------------------
+    # -------------------------------------------------
     # OI Structure Score
-    # -----------------------------
+    # -------------------------------------------------
     def score_oi_structure(self, oi_structure: str, signal: str) -> float:
 
-        bullish_structures = ["LONG_BUILDUP", "SHORT_COVERING"]
-        bearish_structures = ["SHORT_BUILDUP", "LONG_UNWINDING"]
+        w = self.weights["oi_structure"]
 
-        if signal == "CE" and oi_structure in bullish_structures:
-            return self.weights["oi_structure"]
+        bullish = ["LONG_BUILDUP", "SHORT_COVERING"]
+        bearish = ["SHORT_BUILDUP", "LONG_UNWINDING"]
 
-        if signal == "PE" and oi_structure in bearish_structures:
-            return self.weights["oi_structure"]
+        if signal == "CE" and oi_structure in bullish:
+            return w
+
+        if signal == "PE" and oi_structure in bearish:
+            return w
 
         if oi_structure == "NEUTRAL":
-            return self.weights["oi_structure"] * 0.3
+            return w * 0.3
 
-        return self.weights["oi_structure"] * 0.5
+        return w * 0.5
 
-    # -----------------------------
-    # Price Momentum Score
-    # -----------------------------
+    # -------------------------------------------------
+    # Price Momentum
+    # -------------------------------------------------
     def score_price_momentum(self, price_change_pct: float) -> float:
 
+        w = self.weights["price_momentum"]
         pct = abs(price_change_pct)
 
         if pct >= 0.8:
-            return self.weights["price_momentum"]
+            return w
 
         elif pct >= 0.5:
-            return self.weights["price_momentum"] * 0.8
+            return w * 0.8
 
         elif pct >= 0.3:
-            return self.weights["price_momentum"] * 0.6
+            return w * 0.6
 
         elif pct >= 0.15:
-            return self.weights["price_momentum"] * 0.4
+            return w * 0.4
 
-        return self.weights["price_momentum"] * 0.2
+        return w * 0.2
 
-    # -----------------------------
+    # -------------------------------------------------
     # ATR Expansion Score
-    # -----------------------------
+    # -------------------------------------------------
     def score_atr(self, signal: Dict) -> float:
 
-        if signal.get("is_compression") and signal.get("atr_expanding_3_candles"):
-            return self.weights["atr"]
+        w = self.weights["atr"]
 
         if signal.get("atr_expanding_3_candles"):
-            return self.weights["atr"] * 0.7
+            return w
 
         if signal.get("atr_expanding_2_candles"):
-            return self.weights["atr"] * 0.5
+            return w * 0.6
 
-        return self.weights["atr"] * 0.2
+        return w * 0.2
 
-    # -----------------------------
-    # VWAP Score
-    # -----------------------------
-    def score_vwap(self, signal: Dict) -> float:
+    # -------------------------------------------------
+    # Compression Score
+    # -------------------------------------------------
+    def score_compression(self, signal: Dict) -> float:
 
-        duration = signal.get("above_vwap_duration_min", 0)
+        w = self.weights["compression"]
 
-        if duration > 60:
-            return self.weights["vwap"]
+        atr_comp = signal.get("is_compression", False)
+        bb_comp = signal.get("is_bollinger_compression", False)
 
-        elif duration > 30:
-            return self.weights["vwap"] * 0.7
+        if atr_comp and bb_comp:
+            return w
 
-        elif duration > 10:
-            return self.weights["vwap"] * 0.5
-
-        return self.weights["vwap"] * 0.2
-
-    # -----------------------------
-    # OI Trend Score
-    # -----------------------------
-    def score_oi_trend(self, oi_trend: str) -> float:
-
-        if oi_trend == "OI_RISING":
-            return self.weights["oi_trend"]
-
-        if oi_trend == "OI_FLAT":
-            return self.weights["oi_trend"] * 0.6
-
-        if oi_trend == "OI_FALLING":
-            return self.weights["oi_trend"] * 0.3
+        if atr_comp or bb_comp:
+            return w * 0.6
 
         return 0
 
-    # -----------------------------
-    # Final Score Calculation
-    # -----------------------------
+    # -------------------------------------------------
+    # Liquidity Sweep Score
+    # -------------------------------------------------
+    def score_liquidity_sweep(self, signal: Dict) -> float:
+
+        w = self.weights["liquidity_sweep"]
+
+        if signal.get("is_liquidity_sweep_breakout"):
+            return w
+
+        return 0
+
+    # -------------------------------------------------
+    # VWAP Direction Score
+    # -------------------------------------------------
+    def score_vwap(self, signal: Dict) -> float:
+
+        w = self.weights["vwap"]
+
+        duration = signal.get("above_vwap_duration_min", 0)
+        slope_rising = signal.get("is_vwap_slope_rising", False)
+        signal_type = signal.get("signal")
+
+        if signal_type == "CE":
+
+            if duration > 60 and slope_rising:
+                return w
+
+            if duration > 30:
+                return w * 0.7
+
+        else:  # PE
+
+            if duration == 0 and not slope_rising:
+                return w
+
+            if duration < 10:
+                return w * 0.7
+
+        return w * 0.2
+
+    # -------------------------------------------------
+    # OI Trend Score
+    # -------------------------------------------------
+    def score_oi_trend(self, oi_trend: str) -> float:
+
+        w = self.weights["oi_trend"]
+
+        if oi_trend == "OI_RISING":
+            return w
+
+        if oi_trend == "OI_FLAT":
+            return w * 0.6
+
+        if oi_trend == "OI_FALLING":
+            return w * 0.3
+
+        return 0
+
+    # -------------------------------------------------
+    # Range Expansion Score
+    # -------------------------------------------------
+    def score_range_expansion(self, signal: Dict) -> float:
+
+        w = self.weights["range_expansion"]
+        ratio = signal.get("range_ratio", 0)
+
+        if ratio > 0.012:
+            return w
+
+        elif ratio > 0.009:
+            return w * 0.7
+
+        elif ratio > 0.006:
+            return w * 0.4
+
+        return 0
+
+    # -------------------------------------------------
+    # Option Volume Score
+    # -------------------------------------------------
+    def score_option_volume(self, signal: Dict) -> float:
+
+        w = self.weights["option_volume_spike_ratio"]
+
+        volume = signal["options"]["volume_spike"]
+
+        if volume >= 5:
+            score = w
+
+        elif volume >= 3:
+            score = w * 0.8
+
+        elif volume >= 2:
+            score = w * 0.6
+
+        else:
+            score = w * 0.3
+
+        return score
+
+    # -------------------------------------------------
+    # Final Score
+    # -------------------------------------------------
     def calculate_signal_score(self, signal: Dict) -> float:
 
         score = 0
@@ -135,33 +223,42 @@ class SignalScorer:
 
         score += self.score_atr(signal)
 
+        score += self.score_compression(signal)
+
+        score += self.score_liquidity_sweep(signal)
+
         score += self.score_vwap(signal)
 
         score += self.score_oi_trend(signal["oi_trend"])
 
-        score += self.score_option_volume(signal["options"]["volume_spike"])
+        score += self.score_range_expansion(signal)
 
-        return round(score, 2)
+        score += self.score_option_volume(signal)
+        max_possible = sum(self.weights.values())
 
-    # -----------------------------
+        normalized_score = (score / max_possible) * 100
+
+        return round(normalized_score, 2)
+
+    # -------------------------------------------------
     # Score Category
-    # -----------------------------
+    # -------------------------------------------------
     def score_category(self, score: float) -> str:
 
-        if score >= 80:
+        if score >= 85:
             return "STRONG"
 
-        if score >= 65:
+        if score >= 70:
             return "GOOD"
 
-        if score >= 50:
+        if score >= 55:
             return "MODERATE"
 
         return "WEAK"
 
-    # -----------------------------
+    # -------------------------------------------------
     # Rank Signals
-    # -----------------------------
+    # -------------------------------------------------
     def rank_signals(self, signals: List[Dict]) -> List[Dict]:
 
         for signal in signals:
@@ -174,25 +271,3 @@ class SignalScorer:
         signals.sort(key=lambda x: x["score"], reverse=True)
 
         return signals
-
-
-    def score_option_volume(self, volume_spike_ratio: float) -> float:
-        """
-        Assign score based on option volume spike.
-        """
-
-        max_weight = self.weights["option_volume_spike_ratio"]
-
-        if volume_spike_ratio >= 5:
-            return max_weight
-
-        elif volume_spike_ratio >= 3:
-            return max_weight * 0.8
-
-        elif volume_spike_ratio >= 2:
-            return max_weight * 0.6
-
-        elif volume_spike_ratio >= 1.5:
-            return max_weight * 0.4
-
-        return max_weight * 0.2    

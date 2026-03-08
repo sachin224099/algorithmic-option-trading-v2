@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from data.historic_data import get_minutes_data
 from data.zerodha_client import ZerodhaClient
 from core.config_loader import Config
+from indicators.bollinger_compression_detector import BollingerCompressionDetector
 from indicators.indicator_metrics_calculator import calculate_price_change_pct, calculate_oi_change_pct, calculate_volume_spike_ratio, classify_oi_structure, identify_oi_trend, calculate_atr, calculate_atr_percentage_from_value, calculate_atr_series, is_atr_expanding_3_candles, is_atr_expanding_2_candles, extract_vwap_context, detect_compression     
 
 def get_fifteen_min_signals(futures_master: pd.DataFrame):
@@ -47,6 +48,7 @@ def get_fifteen_min_signals(futures_master: pd.DataFrame):
                 #print(row["symbol"])
                 row["is_compression"] = detect_compression(df_closed, atr_series, config.get_compression_window())
                 row["is_liquidity_sweep_breakout"] = liquidity_sweep_breakout(df_closed, config.get_lookback_candles())
+                row["is_bollinger_compression"] = BollingerCompressionDetector().latest_signal(df_closed)
 
                 signals.append(row)
         except Exception as e:

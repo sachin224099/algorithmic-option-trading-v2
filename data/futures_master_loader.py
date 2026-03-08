@@ -52,12 +52,13 @@ class FuturesMasterLoader:
             raise Exception("Failed to fetch instruments from Zerodha")
 
         # Select and rename only the columns we need
-        df = instruments[["name", "tradingsymbol", "instrument_token", "expiry"]].copy()
+        df = instruments[["name", "tradingsymbol", "instrument_token", "expiry", "lot_size"]].copy()
         df.columns = [
             "symbol",
             "futures_symbol",
             "instrument_token",
-            "expiry"
+            "expiry",
+            "lot_size"
         ]
 
         df.to_csv(self.cache_path, index=False)
