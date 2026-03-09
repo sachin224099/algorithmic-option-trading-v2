@@ -1,6 +1,6 @@
 # Kite Connect API Configuration
 api:
-  api_key: <>
+  api_key: <YOUR_API_KEY>
   access_token: <>
 
 # Trading Strategy Configuration
@@ -25,13 +25,15 @@ options:
 
 scoring:
   weights:
-    volume: 16
-    oi_structure: 16
-    price_momentum: 12
-    atr: 16
-    compression: 12
-    liquidity_sweep: 14
-    vwap: 10
-    oi_trend: 6
+    volume: 18
+    price_momentum: 15
+    range_expansion: 15
+    atr: 14
+    oi_change: 14
+    vwap: 6
+    oi_structure: 5
+    oi_trend: 3
+    signal: 3
+    compression: 2
+    liquidity_sweep: 2
     option_volume_spike_ratio: 0
-    range_expansion: 10
