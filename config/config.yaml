@@ -33,5 +33,5 @@ scoring:
     liquidity_sweep: 14
     vwap: 10
     oi_trend: 6
-    option_volume_spike_ratio: 8
+    option_volume_spike_ratio: 0
     range_expansion: 10

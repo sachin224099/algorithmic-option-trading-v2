@@ -86,6 +86,12 @@ class EntryMonitor:
 
         df = df.sort_values("date")
 
+        # Validate sufficient data before accessing indices
+        # Need at least 2 rows for prev comparison and lookback+1 for volume calculation
+        min_required_rows = max(2, self.lookback + 1)
+        if len(df) < min_required_rows:
+            return None
+
         latest = df.iloc[-1]
         prev = df.iloc[-2]
 
@@ -113,6 +119,11 @@ class EntryMonitor:
         oi_percentage_change = calculate_oi_change_pct(df)
         #print(symbol, oi_percentage_change)
         #print(symbol, self._get_option_ltp(option_symbol))
+        
+        # Skip if OI change calculation failed
+        if oi_percentage_change is None:
+            return None
+            
         if direction == "CE":
 
             if bullish_break and volume_spike and oi_percentage_change > 0.3:
@@ -134,7 +145,6 @@ class EntryMonitor:
                     "symbol": symbol,
                     "option_symbol": option_symbol,
                     "direction": direction,
-                    "oi_percentage_change_5min": oi_percentage_change,
                     "entry_price": self._get_option_ltp(option_symbol),
                     "timestamp": datetime.now()
                 }
