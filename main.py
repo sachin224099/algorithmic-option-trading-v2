@@ -15,6 +15,90 @@ from data.options_data import populate_options_ltp
 from utils.signal_serializer import serialize_signal
 from scoring.signal_scorer import SignalScorer
 from options.options_metrics import OptionsMetrics
+import orjson
+
+
+def filter_and_save_final_signals(signals, timestamp=None, final_signals_dir="data_cache/final_signals"):
+    """
+    Filter signals based on specific conditions and save to a timestamped JSON file.
+    
+    Conditions:
+    - score >= 75
+    - oi_trend = "OI_RISING"
+    - oi_structure: PE = "SHORT_BUILDUP", CE = "LONG_BUILDUP"
+    - atr_expanding_3_candles = True
+    
+    Parameters:
+        signals: List of signal dictionaries
+        timestamp: datetime object for timestamp (defaults to current time)
+        final_signals_dir: Directory to save final signals file (default: "data_cache/final_signals")
+    
+    Returns:
+        str: Path to the saved file, or None if no signals matched
+    """
+    if not signals:
+        return None
+    
+    if timestamp is None:
+        timestamp = datetime.now()
+    
+    # Filter signals based on conditions
+    filtered_signals = []
+    for signal in signals:
+        try:
+            # Condition 1: score >= 75
+            score = signal.get("score", 0)
+            if score < 60:
+                continue
+            
+            # Condition 2: oi_trend = "OI_RISING"
+            oi_trend = signal.get("oi_trend")
+            if oi_trend != "OI_RISING":
+                continue
+            
+            # Condition 3: oi_structure based on signal type
+            signal_type = signal.get("signal")
+            oi_structure = signal.get("oi_structure")
+            
+            if signal_type == "PE" and oi_structure != "SHORT_BUILDUP":
+                continue
+            if signal_type == "CE" and oi_structure != "LONG_BUILDUP":
+                continue
+            
+            # Condition 4: atr_expanding_3_candles = True
+            atr_expanding = signal.get("atr_expanding_3_candles", False)
+            if not atr_expanding:
+                continue
+            
+            # All conditions met, add to filtered list
+            filtered_signals.append(signal)
+        except Exception as e:
+            symbol = signal.get("symbol", "UNKNOWN")
+            print(f"⚠️ Error filtering signal {symbol}: {e}")
+            continue
+    
+    # Save filtered signals if any match
+    if not filtered_signals:
+        print("ℹ️ No signals matched the final signal criteria")
+        return None
+    
+    timestamp_str = timestamp.strftime("%Y%m%d_%H%M%S")
+    final_signals_filepath = os.path.join(final_signals_dir, f"final_signals_{timestamp_str}.json")
+    os.makedirs(final_signals_dir, exist_ok=True)
+    
+    # Prepare data structure similar to regular signals file
+    data = {
+        "timestamp": timestamp.isoformat(),
+        "count": len(filtered_signals),
+        "signals": filtered_signals
+    }
+    
+    # Save to JSON file
+    with open(final_signals_filepath, 'wb') as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
+    
+    print(f"✅ Filtered and saved {len(filtered_signals)} final signals to {final_signals_filepath}")
+    return final_signals_filepath
 
 
 @handle_exceptions
@@ -91,6 +175,9 @@ def main():
                 signals_for_json = scorer.rank_signals(signals_for_json)
                 signals_filepath = save_signals_with_timestamp(signals_for_json, run_start)
                 print(f"✅ Processed {len(signals_for_json)} signals and saved to {signals_filepath}")
+                
+                # Filter and save final signals based on criteria
+                filter_and_save_final_signals(signals_for_json, run_start)
             else:
                 print("⚠️ No signals to save after processing")    
         except Exception as e:
