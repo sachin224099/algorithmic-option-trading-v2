@@ -132,8 +132,8 @@ class TradeManager:
                     if signal_type == "PE":
                         # PE: Target is below close_price, stop_loss is above close_price
                         # Adjust both by the price difference to maintain relative distances
-                        adjusted_target = original_target - price_diff
-                        adjusted_stop_loss = original_stop_loss - price_diff
+                        adjusted_target = original_target + price_diff
+                        adjusted_stop_loss = original_stop_loss + price_diff
                     elif signal_type == "CE":
                         # CE: Target is above close_price, stop_loss is below close_price
                         # Adjust both by the price difference to maintain relative distances
