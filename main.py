@@ -11,6 +11,7 @@ from options.strike_selector import filter_strikes_near_spot
 from utils.file_operations import save_signals_with_timestamp
 from target_stoploss.target_stop_loss_calculator import calculate_target_stop_loss_futures
 from target_stoploss.target_stop_loss_calculator import calculate_target_stop_loss_options
+from target_stoploss.target_stop_loss_calculator import calculate_target_stop_loss_fixed_percentage
 from data.options_data import populate_options_ltp
 from utils.signal_serializer import serialize_signal
 from scoring.signal_scorer import SignalScorer
@@ -48,7 +49,7 @@ def filter_and_save_final_signals(signals, timestamp=None, final_signals_dir="da
         try:
             # Condition 1: score >= 75
             score = signal.get("score", 0)
-            if score < 60:
+            if score < 70:
                 continue
             
             # Condition 2: oi_trend = "OI_RISING"
@@ -154,7 +155,7 @@ def main():
                     # Create a copy of signal for JSON without modifying original
                     # Convert pandas Series to dict first to avoid string conversion of dict values
                     signal_copy = signal.to_dict() if isinstance(signal, pd.Series) else signal.copy()
-                    futures_target_stop_loss = calculate_target_stop_loss_futures(signal["close"], signal["current_atr"], signal["signal"], config)
+                    futures_target_stop_loss = calculate_target_stop_loss_fixed_percentage(signal["close"], signal["signal"])
                     signal_copy["futures_target_sl_context"] = futures_target_stop_loss
                     
                     options_target_stop_loss = calculate_target_stop_loss_options(futures_target_stop_loss, options["last_price"], signal["close"], config)
