@@ -22,3 +22,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Database files
+**/trades.db
+trades.db
